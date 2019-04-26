@@ -3,7 +3,7 @@ ASM_SOURCES = $(wildcard asm/*.asm)
 HEADERS = $(wildcard common/*.h x86/*.h libc/*.h mm/*.h task/*.h kernel/*.h)
 OBJECTS = ${ASM_SOURCES:.asm=.o} loader.o ${C_SOURCES:.c=.o}
 CC = i386-elf-gcc
-CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+CFLAGS = -g -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 			-nostartfiles -nodefaultlibs -Wall -Wextra -c -I. #-masm=intel
 LDFLAGS = -T link.ld -melf_i386
 AS = nasm
@@ -13,6 +13,11 @@ all: kernel.elf  os.iso
 	make clean
 	i386-elf-objdump -d -M intel kernel.elf > kernel.dis
 	bochs -qf bochsrc
+
+gdb: kernel.elf  os.iso
+	make clean
+	i386-elf-objdump -d -M intel kernel.elf > kernel.dis
+	\/opt/bochs/gdbstub/bin/bochs -qf bochsrc
 	
 	
 kernel.elf: $(OBJECTS)
