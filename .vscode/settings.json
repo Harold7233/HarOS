@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "common.h": "c",
+        "vga.h": "c",
+        "idt.h": "c",
+        "gdt.h": "c",
+        "timer.h": "c",
+        "interrupt.h": "c",
+        "stdarg.h": "c",
+        "string.h": "c",
+        "ctype.h": "c",
+        "multiboot.h": "c",
+        "dev.h": "c",
+        "phy_mm.h": "c"
+    }
+}

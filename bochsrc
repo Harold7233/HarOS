@@ -1,0 +1,27 @@
+###############################################################
+# Configuration file for Bochs
+###############################################################
+
+# how much memory the emulated machine will have
+megs: 1024
+
+# filename of ROM images
+romimage: file=$BXSHARE/BIOS-bochs-legacy
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+
+# what disk images will be used
+ata0-master:     type=cdrom, path=os.iso, status=inserted
+# choose the boot disk.
+boot: cdrom
+
+# where do we send log messages?
+# log: bochsout.txt
+
+# disable the mouse
+mouse: enabled=0
+
+# enable key mapping, using US layout as default.
+keyboard: keymap=$BXSHARE/keymaps/sdl2-pc-us.map
+magic_break: enabled=1
+cpu: reset_on_triple_fault=0
+#debug: PIC=report
