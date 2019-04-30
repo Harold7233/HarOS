@@ -4,6 +4,7 @@
 #include <common/vga.h>
 #include <common/dev.h>
 #include <mm/paging.h>
+#include <task/sched.h>
 #define TSS_GDT_INDEX 5
 #define THREAD_INIT_STACK_SIZE (PAGE_SIZE * 4)
 
@@ -73,17 +74,22 @@ union thread_info {
     u8int_t kernel_stack[PAGE_SIZE];
 };
 
-typedef struct pcb
+typedef struct task_struct
 {
     u32int_t pid;
     task_state_t state;
     void *stack;
     context_t context;
     mm_t *mm;
-    struct pcb *next;
     u8int_t preempt_count;
     u8int_t need_resched;
+    s8int_t nice;
+    s8int_t priority;
+    struct list_head run_list;
+    prio_array_t *array;
 } task_t;
+
+
 
 // A struct describing a Task State Segment.
 typedef struct tss_entry_struct

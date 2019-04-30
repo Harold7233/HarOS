@@ -1,6 +1,6 @@
 #include <x86/interrupt.h>
 #include <common/dev.h>
-
+#include <task/sched.h>
 intr_handler_cb interrupt_handlers[256];
 void isr_handler_c(intr_regs_t registers)
 {
@@ -9,7 +9,10 @@ void isr_handler_c(intr_regs_t registers)
         intr_handler_cb handler = interrupt_handlers[registers.intr_num];
         handler(registers);
     }
-
+    
+    if (current_task && current_task->need_resched && !current_task->preempt_count){
+        schedule();
+    }
     
 }
 

@@ -22,9 +22,14 @@ int ttt(void *args)
     while (1)
     {
         printk("B");
-        schedule();
+        // schedule();
     }
 }
+void keyboard_cb(intr_registers){
+    u8int_t scan_code = inb(0x60);
+    printk("Key pressed: %d\n", scan_code);
+}
+
 
 int syscall_fork()
 {
@@ -46,34 +51,22 @@ int kernel_main(multiboot_info_t *mboot_ptr)
 
     register_interrupt_handler(14, page_fault);
     register_interrupt_handler(128, syscall_dispathcer);
+    register_interrupt_handler(33, keyboard_cb);
     // register_interrupt_handler(13, general_protection_fault);
     init_frames(mboot_ptr);
     init_paging();
     init_kernel_heap();
     
     init_tasking();
-    init_timer(50);
+    init_timer();
     printk("Kernel Stack Top: 0x%08X\n", (u32int_t)&kernel_stack + THREAD_INIT_STACK_SIZE);
     kernel_thread(&ttt, NULL);
     while (1)
     {
         printk("A");
-        schedule();
+        // schedule();
     }
     halt();
-
-    // printk("Kernel starts at: 0x%08X\n", (u32int_t)&kernel_start_offset);
-    // printk("Kernel ends at: 0x%08X\n", (u32int_t)&kernel_end_offset);
-    // printk("kernel size: %dKB\n", ((u32int_t)&kernel_end_offset - (u32int_t)&kernel_start_offset + 1023) / 1024);
-    //   show_phy_mem(mboot_ptr);
-    //   init_frames(mboot_ptr);
-
-    //   frame_t *p1 = alloc_frame();
-    //   printk("Alloced frame at 0x%08X\n", p1->addr);
-    //   frame_t *p2 = alloc_frame();
-    //   printk("Alloced frame at 0x%08X\n", p2->addr);
-    //   frame_t *p3 = alloc_frame();
-    //   printk("Alloced frame at 0x%08X\n", p3->addr);
     return 0;
 }
 
