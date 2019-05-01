@@ -17,7 +17,7 @@ all: kernel.elf  os.iso
 gdb: kernel.elf  os.iso
 	make clean
 	i386-elf-objdump -d -M intel kernel.elf > kernel.dis
-	\/opt/bochs/gdbstub/bin/bochs -qf bochsrc
+	
 	
 	
 kernel.elf: $(OBJECTS)
