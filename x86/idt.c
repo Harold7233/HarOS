@@ -26,6 +26,7 @@ void init_idt()
     outb(0xA1, 0x01);
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
+    
     idt_ptr.limit = sizeof(idt_table) - 1;
     idt_ptr.base = (u32int_t)&idt_table;
     set_idt_entry(0, (u32int_t)isr0, 0x08, 0x8E);

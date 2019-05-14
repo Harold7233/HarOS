@@ -21,6 +21,7 @@ u8int_t inb(u16int_t port);
 
 void panic_detail(char *, char *, u32int_t, u8int_t);
 #include <common/vga.h>
+#include <kernel/list.h>
 #define PANIC(msg) panic_detail(msg, __FILE__, __LINE__, TEXT_FORE_COLOR_RED)
 #define bb asm volatile("xchg %bx, %bx");
 #define halt()   \
@@ -29,4 +30,9 @@ void panic_detail(char *, char *, u32int_t, u8int_t);
         for (;;) \
             ;    \
     } while (0)
+
+
+
+#define cli() asm volatile("cli");
+#define sti() asm volatile("sti");
 #endif

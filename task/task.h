@@ -72,17 +72,21 @@ union thread_info {
     struct pcb *task;
     u8int_t kernel_stack[PAGE_SIZE];
 };
-
-typedef struct pcb
+typedef struct prio_array prio_array_t;
+typedef struct task_struct
 {
     u32int_t pid;
     task_state_t state;
     void *stack;
     context_t context;
     mm_t *mm;
-    struct pcb *next;
     u8int_t preempt_count;
     u8int_t need_resched;
+    s8int_t nice;
+    s8int_t priority;
+    u32int_t time_slice;
+    struct list_head run_list;
+    prio_array_t *array;
 } task_t;
 
 // A struct describing a Task State Segment.
@@ -115,11 +119,11 @@ typedef struct tss_entry_struct
     u32int_t ldt; // Unused...
     u16int_t trap;
     u16int_t iomap_base;
-} tss_t __attribute__((packed));
+} __attribute__((packed)) tss_t;
 void init_tasking();
 void try_to_schedule();
 void schedule();
-void kernel_thread(kthread_func func, void *args);
+void kernel_thread(kthread_func func, void *args, u32int_t priority);
 void init_tss(u16int_t, u16int_t);
 void switch_to_user_mode();
 int fork();

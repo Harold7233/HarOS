@@ -1,20 +1,17 @@
-#include "timer.h"
-#include "interrupt.h"
+#include <x86/timer.h>
+#include <x86/interrupt.h>
 
 #include <common/dev.h>
-#include <task/task.h>
-u32int_t tick = 0;
+#include <task/sched.h>
+u32int_t ticks = 0;
 
 static void timer_callback(intr_regs_t registers)
 {
-   tick++;
-   if (preempt_count() == 0)
-   {
-      schedule();
-   }
+   ticks++;
+   scheduler_tick();
 }
 
-void init_timer(u32int_t frequency)
+void init_timer()
 {
 
    register_interrupt_handler(32, &timer_callback);
@@ -22,7 +19,7 @@ void init_timer(u32int_t frequency)
    // The value we send to the PIT is the value to divide it's input clock
    // (1193180 Hz) by, to get our required frequency. Important to note is
    // that the divisor must be small enough to fit into 16-bits.
-   u32int_t divisor = 1193180 / frequency;
+   u32int_t divisor = 1193180 / HZ;
 
    // Send the command byte.
    outb(0x43, 0x36);

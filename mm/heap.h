@@ -16,7 +16,7 @@ typedef struct heap_header
     struct heap_header *next; // 4B
     u32int_t allocated : 1;   // 4B
     u32int_t size : 31
-} heap_header_t __attribute__((packed));
+}__attribute__((packed)) heap_header_t ;
 
 void init_kernel_heap();
 void kfree(void *);
