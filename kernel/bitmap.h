@@ -5,7 +5,7 @@ static inline void clear_bit(int nr, volatile u32int_t * addr)
 {
 	__asm__ __volatile__(
 		"btrl %1,%0"
-		:"=m" (addr)
+		:"=m" ((*(volatile long *) addr))
 		:"Ir" (nr));
 }
 
@@ -13,7 +13,7 @@ static inline void set_bit(int nr, volatile u32int_t * addr)
 {
 	__asm__(
 		"btsl %1,%0"
-		:"=m" (addr)
+		:"=m" ((*(volatile long *) addr))
 		:"Ir" (nr));
 }
 

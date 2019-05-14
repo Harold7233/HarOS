@@ -33,5 +33,6 @@ void panic_detail(char *, char *, u32int_t, u8int_t);
 
 
 
-
+#define cli() asm volatile("cli");
+#define sti() asm volatile("sti");
 #endif

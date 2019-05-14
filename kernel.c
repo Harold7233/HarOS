@@ -22,14 +22,23 @@ int ttt(void *args)
     while (1)
     {
         printk("B");
-        // schedule();
+        //kernel_yield();
     }
 }
-void keyboard_cb(intr_registers){
+int ttt2(void *args)
+{
+    while (1)
+    {
+        printk("C");
+        //kernel_yield();
+    }
+}
+
+void keyboard_cb(intr_registers)
+{
     u8int_t scan_code = inb(0x60);
     printk("Key pressed: %d\n", scan_code);
 }
-
 
 int syscall_fork()
 {
@@ -56,11 +65,12 @@ int kernel_main(multiboot_info_t *mboot_ptr)
     init_frames(mboot_ptr);
     init_paging();
     init_kernel_heap();
-    
     init_tasking();
     init_timer();
-    printk("Kernel Stack Top: 0x%08X\n", (u32int_t)&kernel_stack + THREAD_INIT_STACK_SIZE);
-    kernel_thread(&ttt, NULL);
+
+    // printk("Kernel Stack Top: 0x%08X\n", (u32int_t)&kernel_stack + THREAD_INIT_STACK_SIZE);
+    kernel_thread(&ttt, NULL, MAX_PRIO - 2);
+    kernel_thread(&ttt2, NULL, MAX_PRIO - 1);
     while (1)
     {
         printk("A");

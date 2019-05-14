@@ -3,6 +3,8 @@
 #include <x86/interrupt.h>
 #include <x86/gdt.h>
 #include <libc/string.h>
+#include <task/sched.h>
+#include <kernel/list.h>
 task_t *ready_queue;
 task_t *current_task;
 u32int_t next_pid = 0;
@@ -13,16 +15,28 @@ static void load_tss();
 static void write_tss(s32int, u16int, u32int);
 extern tss_t tss_entry;
 extern u8int_t kernel_stack[];
+extern runqueue_t *rq;
 extern void ret_from_fork();
 void init_tasking()
 {
+    cli();
     current_task = (task_t *)kmalloc(sizeof(task_t));
     ready_queue = current_task;
     current_task->pid = next_pid++;
     current_task->stack = (void *)&kernel_stack;
     current_task->context.esp = 0;
     current_task->context.ebp = 0;
-    current_task->next = NULL;
+    current_task->array = 0;
+
+    rq->active = &rq->arrays[0];
+    rq->expired = &rq->arrays[1];
+    for (int i = 0; i < MAX_PRIO; ++i)
+    {
+        INIT_LIST_HEAD(&rq->active->queue[i]);
+        INIT_LIST_HEAD(&rq->expired->queue[i]);
+    }
+    rq->idle = current_task;
+    sti();
 }
 
 void do_exit()
@@ -46,7 +60,7 @@ __asm__(".align 4\n"
         "pushl %eax\n\t"
         "call do_exit");
 
-void kernel_thread(kthread_func func, void *args)
+void kernel_thread(kthread_func func, void *args, u32int_t priority)
 {
     asm volatile("cli");
     intr_regs_t regs;
@@ -61,8 +75,8 @@ void kernel_thread(kthread_func func, void *args)
     regs.edx = (u32int_t)args;
     task_t *new_task = (task_t *)kmalloc(sizeof(task_t));
     new_task->pid = next_pid++;
-    new_task->next = NULL;
     new_task->state = TASK_RUNNABLE;
+    new_task->priority = priority;
     new_task->stack = kmalloc(THREAD_INIT_STACK_SIZE);
     new_task->context.eip = &ret_from_fork;
     regs.ebp = (u32int_t)new_task->stack + THREAD_INIT_STACK_SIZE;
@@ -72,74 +86,14 @@ void kernel_thread(kthread_func func, void *args)
     memcpy((void *)regs.esp, &regs, sizeof(intr_regs_t));
     asm("movl %[next_sp],%%esp"
         : [next_sp] "=m"(regs.esp));
-        task_t *t = ready_queue;
+    task_t *t = ready_queue;
     if (!t)
     {
         PANIC("No Root Process!");
     }
-    while (t->next)
-    {
-        t = t->next;
-    }
-    t->next = new_task;
+    wake_up_new_process(new_task);
     asm volatile("sti");
 }
-
-// int fork(intr_regs_t *regs)
-// {
-//     printk("regs: 0x%08X\n", regs);
-//     // asm volatile("cli");
-//     task_t *parent = current_task;
-//     task_t *new_task = (task_t *)kmalloc(sizeof(task_t));
-
-//     new_task->pid = next_pid++;
-//     new_task->next = NULL;
-//     new_task->state = TASK_RUNNABLE;
-//     new_task->stack = kmalloc(THREAD_INIT_STACK_SIZE);
-
-//     u32int_t new_stack_top = (u32int_t)(new_task->stack) + THREAD_INIT_STACK_SIZE;
-//     u32int_t old_stack_top = (u32int_t)(current_task->stack) + THREAD_INIT_STACK_SIZE;
-//     u32int_t regs_offset = old_stack_top - (u32int_t)regs;
-//     intr_regs_t *new_regs = (intr_regs_t *)(new_stack_top - regs_offset);
-
-//     task_t *t = ready_queue;
-//     while (t->next)
-//     {
-//         t = t->next;
-//     }
-//     t->next = new_task;
-
-//     u32int_t ebp_offset = old_stack_top - regs->ebp;
-//     u32int_t new_ebp =  new_stack_top - ebp_offset;
-//     new_task->context.ebp =new_ebp;
-
-//     u32int_t new_esp =  new_stack_top - regs_offset;
-//     new_task->context.esp = new_esp;
-
-//     memcpy((void *)new_esp, (void *)regs, regs_offset);
-
-//     // new_esp -= sizeof(u32int_t);
-//     // *(u32int_t *)new_esp = new_task->context.ebp;
-//     // new_task->context.esp = new_esp;
-//     new_regs->ebp = new_ebp;
-//     new_regs->esp = new_esp;
-//     u32int_t eip = get_eip();
-//     // eip指向下面的第一条指令
-//     if (current_task == parent)
-//     {
-//         new_task->context.eip = eip;
-//         new_regs->eax = 0;
-//         return new_task->pid;
-//     }
-//     else
-//     {
-//         //printk("new_ebp: 0x%08X\n", new_regs->ebp);
-//         bb;
-//         asm volatile("iret");
-//         return 0;
-//     }
-// }
-
 static void load_tss()
 {
     asm volatile("\

@@ -9,11 +9,11 @@ typedef struct intr_registers
     u32int_t eip, cs, eflags, useresp, ss;           // 调用ISR之前CPU 自动push的
 } intr_regs_t;
 
-typedef void (*intr_handler_cb)(intr_regs_t);
+typedef void (*intr_handler_t)(intr_regs_t);
 
 void isr_handler_c(intr_regs_t);
 void irq_handler_c(intr_regs_t);
-void register_interrupt_handler(u8int_t intr_num, intr_handler_cb handler);
+void register_interrupt_handler(u8int_t intr_num, intr_handler_t handler);
 extern void isr0();
 extern void isr1();
 extern void isr2();

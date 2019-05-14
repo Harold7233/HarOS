@@ -3,7 +3,7 @@
 
 #include <common/dev.h>
 #include <task/sched.h>
-u32int_t volatile ticks = 0;
+u32int_t ticks = 0;
 
 static void timer_callback(intr_regs_t registers)
 {

@@ -7,26 +7,48 @@
                          STARVATION_LIMIT * ((rq)->nr_running) + 1)))
 
 runqueue_t rq_entity, *rq = &rq_entity;
-static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
+static inline void dequeue_task(task_t *p, prio_array_t *array)
 {
   array->nr_active--;
   list_del(&p->run_list);
   if (list_empty(array->queue + p->priority))
-    clear_bit(p->priority, array->bitmap);
+    clear_bit(p->priority, &array->bitmap);
 }
 
-static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
+static inline void enqueue_task(task_t *p, prio_array_t *array)
 {
   list_add_tail(&p->run_list, array->queue + p->priority);
-  set_bit(p->priority, array->bitmap);
+  set_bit(p->priority, &array->bitmap);
   array->nr_active++;
   p->array = array;
+}
+static inline void activate_task(task_t *p)
+{
+  enqueue_task(p, rq->active);
+  rq->nr_running++;
+}
+static inline void deactivate_task(task_t *p)
+{
+  rq->nr_running--;
+  dequeue_task(p, p->array);
+  p->array = NULL;
+}
+
+void kernel_yield()
+{
+  preempt_disable();
+  sys_sched_yield();
+  preempt_enable();
 }
 
 void scheduler_tick()
 {
-  task_t *t = current_task;
+  if (current_task->preempt_count)
+  {
+    return;
+  }
 
+  task_t *t = current_task;
   if (t == rq->idle)
   {
     // TODO 空闲进程
@@ -39,12 +61,12 @@ void scheduler_tick()
   }
   spin_lock(&rq->lock);
 
-  if (!--t->time_slice)
+  if (!--t->time_slice) //时间片用完
   {
+    dequeue_task(t, rq->active);
     if (RT_TASK(t))
     {
       t->time_slice = NEW_TIMESLICE(t);
-      dequeue_task(t, rq->active);
       if (EXPIRED_STARVING(rq))
       {
         // 如果至少有一个任务expire超过了限制，即使是实时任务也不应该继续霸占CPU
@@ -52,17 +74,16 @@ void scheduler_tick()
       }
       else
       {
-        // 实时任务直接放回active队列
+        //直接放回active队列
         enqueue_task(t, rq->active);
       }
     }
     else
     {
-      dequeue_task(t, rq->active);
-      SET_NEED_RESCHED(t);
       t->time_slice = NEW_TIMESLICE(t);
       enqueue_task(t, rq->expired);
     }
+    SET_NEED_RESCHED(t);
     if (!rq->expired_timestamp)
     {
       rq->expired_timestamp = ticks; // 如果所有任务都过期了，记录当前ticks数量
@@ -72,11 +93,16 @@ void scheduler_tick()
   spin_unlock(&rq->lock);
 }
 
-static inline void deactivate_task(struct task_struct *p)
+int wake_up_new_process(task_t *p)
 {
-  rq->nr_running--;
-  dequeue_task(p, p->array);
-  p->array = NULL;
+  p->time_slice = NEW_TIMESLICE(p);
+  if(p->time_slice == 0){
+    PANIC("\nTime slice cannot be 0!\n");
+  }
+  if (!p->array)
+  {
+    activate_task(p);
+  }
 }
 
 void schedule()
@@ -85,17 +111,16 @@ void schedule()
   preempt_disable();
   task_t *prev = current_task, *next;
   prio_array_t *array;
-  if (ready_queue)
+
+  if (!rq->nr_running)
   {
-    task_t *prev = current_task;
-    deactivate_task(prev);
-    if (!rq->nr_running)
-    {
-      next = rq->idle;
-      rq->expired_timestamp = 0;
-    }
+    next = rq->idle;
+    rq->expired_timestamp = 0;
+  }
+  else
+  {
     array = rq->active;
-    if (unlikely(!array->nr_active))
+    if (!array->nr_active)
     {
       /*
 		 * 如果active为空，交换expired和active两个prio_array
@@ -109,9 +134,33 @@ void schedule()
     u8int_t idx = find_first_bit(array->bitmap); // 找到优先级最高的非空队列
     list_head_t *queue = array->queue + idx;
     next = list_entry(queue->next, task_t, run_list); // 选取该队列的第一个任务执行
+  }
+  current_task = next;
+  if (next != prev)
+  {
     switch_to(prev, next, NULL);
   }
+
   preempt_enable();
+}
+
+int sys_sched_yield()
+{
+  if (!current_task->array || current_task == rq->idle)
+  {
+    PANIC("Idle task cannot yield!");
+  }
+  if (RT_TASK(current_task))
+  {
+    dequeue_task(current_task, current_task->array);
+    enqueue_task(current_task, rq->active);
+  }
+  else
+  {
+    dequeue_task(current_task, current_task->array);
+    enqueue_task(current_task, rq->expired);
+  }
+  schedule();
 }
 
 void switch_to(task_t *prev, task_t *next, task_t *last)

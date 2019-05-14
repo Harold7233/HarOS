@@ -1,8 +1,8 @@
 #ifndef SCHED_H
 #define SCHED_H
 #include <common/common.h>
-#include <task/task.h>
 #include <kernel/lock.h>
+#include <task/task.h>
 #include <x86/timer.h>
 #define NICE_TO_TICKS(nice) ((20 - (nice)) >> 2 + 1)
 
@@ -15,7 +15,6 @@
 #define MAX_TIMESLICE		(200 * HZ / 1000)
 #define NEW_TIMESLICE(p) (MIN_TIMESLICE + \
 	((MAX_TIMESLICE - MIN_TIMESLICE) * (MAX_PRIO-1-(p)->priority)/(MAX_PRIO - 1)))
-
 #define SET_NEED_RESCHED(x)  \
     do                       \
     {                        \
@@ -32,11 +31,15 @@ typedef struct prio_array
 typedef struct runqueue
 {
     spinlock_t lock;
-    unsigned long nr_running, nr_switches, expired_timestamp,
+    u32int_t nr_running, nr_switches, expired_timestamp,
         nr_uninterruptible;
     task_t *curr, *idle;
     struct mm_struct *prev_mm;
     prio_array_t *active, *expired, arrays[2];
 } runqueue_t;
 
+
+int wake_up_new_process(task_t *p);
+void schedule();
+void kernel_yield();
 #endif
