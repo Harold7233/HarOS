@@ -1,44 +1,7 @@
-# Prerequisites
-*.d
-
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
-*.dis
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+.DS_Store
 *.iso
 *.img
+cmake-build*/
+*.dis
+*.elf
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# macOS and IDE
-.DS_Store
-/.vscode/ipch
